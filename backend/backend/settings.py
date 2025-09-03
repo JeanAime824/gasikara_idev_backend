@@ -91,11 +91,11 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'campusconnet',
-        'USER': 'gidevcc',
-        'PASSWORD': 'pwD-PreProdCmpCntGiDEV',
+        'NAME': 'campusconnect',
+        'USER': 'postgres',
+        'PASSWORD': '190903',
         'HOST': 'localhost',
-        'PORT': '5442',
+        'PORT': '5432',
     }
 }
 
@@ -165,7 +165,8 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    #'http://localhost:5173/',
 ]
 
 #Preproduction
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOW_ALL_ORIGINS = True

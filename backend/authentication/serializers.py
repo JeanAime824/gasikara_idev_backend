@@ -1,7 +1,11 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 
+<<<<<<< Updated upstream
 from .models import User
+=======
+from .models import CustomUser, Etudiant, Cours, Notification
+>>>>>>> Stashed changes
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -74,6 +78,7 @@ class SignupSerializer(serializers.Serializer):
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
+<<<<<<< Updated upstream
     def validate_email(self, value):
         if not User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Aucun utilisateur trouvé avec cet email.")
@@ -103,3 +108,34 @@ class PasswordChangeSerializer(serializers.Serializer):
         user.save()
         
         return user
+=======
+    def validate(self, attrs):
+        user = authenticate(username=attrs['username'], password=attrs['password'])
+        if not user:
+            raise AuthenticationFailed("Nom d'utilisateur ou mot de passe incorrect.")
+        refresh = RefreshToken.for_user(user)
+        return {
+            'user': user,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'titre', 'message', 'lien', 'date_creation']
+
+class DashboardSerializer(serializers.Serializer):
+    nombre_etudiant = serializers.IntegerField()
+    nombre_cours = serializers.IntegerField()
+
+    tendance_inscription = serializers.DictField(
+        child = serializers.IntegerField()
+    )
+    repartition_filiere = serializers.DictField(
+        child = serializers.IntegerField()
+    )
+
+    notification_recent = NotificationSerializer(many = True)
+>>>>>>> Stashed changes

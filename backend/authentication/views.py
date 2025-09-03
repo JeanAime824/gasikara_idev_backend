@@ -5,12 +5,23 @@ from django.shortcuts import render, redirect
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 
+<<<<<<< Updated upstream
 from rest_framework import status, generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+=======
+# Create your views here.
+from django.shortcuts import render
+
+from rest_framework.permissions import AllowAny
+
+from .models import CustomUser
+from rest_framework import generics, permissions, status
+>>>>>>> Stashed changes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+<<<<<<< Updated upstream
 from .models import User
 from .permissions import IsAdmin, IsResponsableOrHigher
 from .serializers import UserSerializer, SigninSerializer, SignupSerializer, PasswordResetSerializer, PasswordChangeSerializer
@@ -48,6 +59,53 @@ class SignUpView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save(role='MANAGER')
 
+=======
+from rest_framework.generics import GenericAPIView
+
+from django.db.models.functions import TruncMonth
+from django.db.models import Count
+
+from .models import CustomUser, Etudiant, Cours, Notification
+from .serializers import UserSerializer, SignUpSerializer, SignInSerializer, DashboardSerializer
+
+# Create your views here.
+class SignUpView(generics.CreateAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = SignUpSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'user': UserSerializer(user, context=self.get_serializer_context()).data,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'message': 'Utilisateur crée avec succès'
+        }, status=status.HTTP_201_CREATED)
+    
+
+class SignInView(GenericAPIView):
+    serializer_class = SignInSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)  
+        serializer.is_valid(raise_exception=True)
+
+        validated_data = serializer.validated_data
+        user = validated_data['user']
+
+        return Response({
+            'user': UserSerializer(user).data,
+            'refresh': validated_data['refresh'],
+            'access': validated_data['access'],
+            'message': 'Connexion réussie'
+        }, status=status.HTTP_200_OK)
+    
+>>>>>>> Stashed changes
 
 class SignOutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -116,6 +174,59 @@ class PasswordResetConfirmView(APIView):
             user.set_password(password)
             user.save()
             
+<<<<<<< Updated upstream
             return Response({'message': 'Mot de passe réinitialisé avec succès'})
         
         return Response({'error': 'Token invalide'}, status=400)
+=======
+        except TokenError:
+            return Response(
+                {'error': 'Refresh token invalide'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+class DashboardView(APIView):
+    permission_classes = [AllowAny]
+    # Récupération des données sur le dashboard
+    def get(self, request, *args, **kwargs):
+        nombre_etudiant = Etudiant.objects.count()
+        nombre_cours = Cours.objects.count()
+
+        tendance_inscription = Etudiant.objects.annotate(
+            mois_inscription = TruncMonth('date_inscription')
+        ).values('mois_inscription').annotate(
+            nombre_etudiant = Count('id')
+        ).order_by('mois_inscription')
+
+        tendance_inscription_dict = {
+            item['mois_inscription'].strftime('%Y-%m'): item['nombre_etudiant']
+            for item in tendance_inscription
+        }
+
+        repartition_filiere = Etudiant.objects.values(
+            'filiere__nom'
+        ).annotate(
+            nombre_etudiant = Count('id')
+        ).order_by('-nombre_etudiant')
+
+        repartition_filiere_dict = {
+            item['filiere__nom'] if item['filiere__nom'] else 'Non assigné': item['nombre_etudiant']
+            for item in repartition_filiere
+        }
+
+        notification_recent = Notification.objects.filter(
+            est_lue = False
+        ).order_by('-date_creation')[:5]
+
+        dashboard_data = {
+            'nombre_etudiant': nombre_etudiant,
+            'nombre_cours': nombre_cours,
+            'tendance_inscription': tendance_inscription_dict,
+            'repartition_filiere': repartition_filiere_dict,
+            'notification_recent': notification_recent,
+        }
+
+        serializer = DashboardSerializer(dashboard_data)
+
+        return Response(serializer.data)
+>>>>>>> Stashed changes

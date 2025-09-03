@@ -3,6 +3,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import gettext_lazy as _
 
+from django.utils import timezone
+
 # Create your models here.
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, role=None, **extra_fields):
@@ -76,6 +78,55 @@ class User (AbstractBaseUser, PermissionsMixin):
         return self.role == 'ADMIN'
     
     @property
+<<<<<<< Updated upstream
     def is_manager(self):
         return self.role == 'MANAGER'
     
+=======
+    def is_responsable(self):
+        return self.user_type == 'responsable'
+    
+
+class Filiere(models.Model):
+    nom = models.CharField(max_length = 120)
+
+    def __str__(self):
+        return self.nom
+    
+class Etudiant(models.Model):
+    SEXE = [
+        ('homme', 'Homme'),
+        ('femme', 'Femme'),
+    ]
+    nom = models.CharField(max_length = 255)
+    prenom = models.CharField(max_length = 255)
+    sexe = models.CharField(max_length = 20, choices = SEXE)
+    date_inscription = models.DateField(auto_now_add = True)
+    filiere = models.ForeignKey(Filiere, on_delete = models.SET_NULL, null = True)
+    adresse = models.CharField(max_length = 255)
+    telephone = models.CharField(max_length = 20)
+
+    def __str__(self):
+        return self.nom
+
+class Cours(models.Model):
+    titre = models.CharField(max_length = 120)
+    filiere = models.ForeignKey(Filiere, on_delete = models.SET_NULL, null = True)
+    
+    def __str__(self):
+        return self.titre
+    
+class Notification(models.Model):
+    TITRE_CHOICES = [
+        ('DEMANDE_INSCRIPTION', 'Demande d\'inscription en attente'),
+        ('ALERTE_PAIEMENT', 'Alerte de paiement'),
+    ]
+    titre = models.CharField(max_length = 50, choices = TITRE_CHOICES)
+    message = models.TextField()
+    lien = models.URLField(blank = True, null = True)
+    date_creation = models.DateTimeField(auto_now_add = True)
+    est_lue = models.BooleanField(default = False)
+
+    def __str__(self):
+        return f"{self.titre} - {self.date_creation.strftime('%Y-%m-%d')}"
+>>>>>>> Stashed changes
