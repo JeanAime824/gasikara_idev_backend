@@ -5,73 +5,67 @@ from django.shortcuts import render, redirect
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 
-<<<<<<< Updated upstream
 from rest_framework import status, generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
-=======
 # Create your views here.
 from django.shortcuts import render
 
 from rest_framework.permissions import AllowAny
 
-from .models import CustomUser
 from rest_framework import generics, permissions, status
->>>>>>> Stashed changes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-<<<<<<< Updated upstream
-from .models import User
+from rest_framework.generics import GenericAPIView
+
+from django.db.models.functions import TruncMonth
+from django.db.models import Count
+
+from .models import CustomUser, Etudiant, Cours, Notification, Classe, Professeur
+from .serializers import UserSerializer, SignupSerializer, SigninSerializer, DashboardSerializer
+
+from .models import CustomUser
 from .permissions import IsAdmin, IsResponsableOrHigher
 from .serializers import UserSerializer, SigninSerializer, SignupSerializer, PasswordResetSerializer, PasswordChangeSerializer
 
 # Create your views here.
-class SignInView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        serializer = SigninSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-            refresh = RefreshToken.for_user(user)
-            
-            if user.role == 'ADMIN':
-                redirect = 'http://localhost:3000/admin'  # URL Frontend React
-            else:
-                redirect = 'http://localhost:3000/manager'
-
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'user': UserSerializer(user).data,
-                'redirect': redirect
-            }, status=status.HTTP_200_OK)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# class SignInView(APIView):
+#     permission_classes = [AllowAny]
+#
+#     def post(self, request):
+#         serializer = SigninSerializer(data=request.data)
+#         if serializer.is_valid():
+#             user = serializer.validated_data['user']
+#             refresh = RefreshToken.for_user(user)
+#
+#             if user.role == 'ADMIN':
+#                 redirect = 'http://localhost:3000/admin'  # URL Frontend React
+#             else:
+#                 redirect = 'http://localhost:3000/manager'
+#
+#             return Response({
+#                 'refresh': str(refresh),
+#                 'access': str(refresh.access_token),
+#                 'user': UserSerializer(user).data,
+#                 'redirect': redirect
+#             }, status=status.HTTP_200_OK)
+#
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class SignUpView(generics.CreateAPIView):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = SignupSerializer
     permission_classes = [AllowAny]  # SUPERUSER Ou ADMIN seulement peut créer le MANAGER
 
     def perform_create(self, serializer):
         serializer.save(role='MANAGER')
 
-=======
-from rest_framework.generics import GenericAPIView
-
-from django.db.models.functions import TruncMonth
-from django.db.models import Count
-
-from .models import CustomUser, Etudiant, Cours, Notification
-from .serializers import UserSerializer, SignUpSerializer, SignInSerializer, DashboardSerializer
-
 # Create your views here.
 class SignUpView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
-    serializer_class = SignUpSerializer
+    serializer_class = SignupSerializer
     permission_classes = [permissions.AllowAny]
 
     def create(self, request, *args, **kwargs):
@@ -85,27 +79,29 @@ class SignUpView(generics.CreateAPIView):
             'access': str(refresh.access_token),
             'message': 'Utilisateur crée avec succès'
         }, status=status.HTTP_201_CREATED)
-    
+
 
 class SignInView(GenericAPIView):
-    serializer_class = SignInSerializer
+    serializer_class = SigninSerializer
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)  
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        validated_data = serializer.validated_data
-        user = validated_data['user']
+        # Récupère l'utilisateur validé
+        user = serializer.validated_data['user']
+
+        # Génère les tokens JWT
+        refresh = RefreshToken.for_user(user)
 
         return Response({
             'user': UserSerializer(user).data,
-            'refresh': validated_data['refresh'],
-            'access': validated_data['access'],
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
             'message': 'Connexion réussie'
         }, status=status.HTTP_200_OK)
-    
->>>>>>> Stashed changes
+
 
 class SignOutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -139,7 +135,7 @@ class PasswordResetRequestView(APIView):
     def post(self, request):
         serializer = PasswordResetSerializer(data=request.data)
         if serializer.is_valid():
-            user = User.objects.filter(email=serializer.data['email']).first()
+            user = CustomUser.objects.filter(email=serializer.data['email']).first()
             if user:
                 token = default_token_generator.make_token(user)
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -162,35 +158,29 @@ class PasswordResetConfirmView(APIView):
         password = request.data.get('password')
 
         if not password:
-            return Response({'error': 'Mot de passe requis'}, status=400)
-        
+            return Response({'error': 'Mot de passe requis'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             uid = urlsafe_base64_decode(uidb64).decode()
-            user = User.objects.get(pk=uid)
+            user = CustomUser.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            return Response({'error': 'Lien invalide'}, status=400)
-        
+            return Response({'error': 'Lien invalide'}, status=status.HTTP_400_BAD_REQUEST)
+
         if default_token_generator.check_token(user, token):
             user.set_password(password)
             user.save()
-            
-<<<<<<< Updated upstream
-            return Response({'message': 'Mot de passe réinitialisé avec succès'})
-        
-        return Response({'error': 'Token invalide'}, status=400)
-=======
-        except TokenError:
-            return Response(
-                {'error': 'Refresh token invalide'}, 
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-        
+            return Response({'message': 'Mot de passe réinitialisé avec succès'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Token invalide ou expiré'}, status=status.HTTP_400_BAD_REQUEST)
+
 class DashboardView(APIView):
     permission_classes = [AllowAny]
     # Récupération des données sur le dashboard
     def get(self, request, *args, **kwargs):
         nombre_etudiant = Etudiant.objects.count()
         nombre_cours = Cours.objects.count()
+        nombre_professeur = Professeur.objects.count()
+        nombre_classe = Classe.objects.count()
 
         tendance_inscription = Etudiant.objects.annotate(
             mois_inscription = TruncMonth('date_inscription')
@@ -204,13 +194,13 @@ class DashboardView(APIView):
         }
 
         repartition_filiere = Etudiant.objects.values(
-            'filiere__nom'
+            'classe__nom'
         ).annotate(
             nombre_etudiant = Count('id')
         ).order_by('-nombre_etudiant')
 
         repartition_filiere_dict = {
-            item['filiere__nom'] if item['filiere__nom'] else 'Non assigné': item['nombre_etudiant']
+            item['classe__nom'] if item['filiere__nom'] else 'Non assigné': item['nombre_etudiant']
             for item in repartition_filiere
         }
 
@@ -221,6 +211,8 @@ class DashboardView(APIView):
         dashboard_data = {
             'nombre_etudiant': nombre_etudiant,
             'nombre_cours': nombre_cours,
+            'nombre_professeur': nombre_professeur,
+            'nombre_classe': nombre_classe,
             'tendance_inscription': tendance_inscription_dict,
             'repartition_filiere': repartition_filiere_dict,
             'notification_recent': notification_recent,
@@ -229,4 +221,3 @@ class DashboardView(APIView):
         serializer = DashboardSerializer(dashboard_data)
 
         return Response(serializer.data)
->>>>>>> Stashed changes

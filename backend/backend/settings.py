@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
-    
+
     'corsheaders',
 ]
 
@@ -91,7 +91,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'campusconnect',
+        'NAME': 'gestion',
         'USER': 'postgres',
         'PASSWORD': '190903',
         'HOST': 'localhost',
@@ -141,7 +141,13 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'authentication.User'
+#AUTH_USER_MODEL = 'authentication.CustomUser'
+
+AUTH_USER_MODEL = 'authentication.CustomUser'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # Configuration email pour la réinitialisation de mot de passe
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -163,9 +169,9 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
     'http://127.0.0.1:3000',
-    #'http://localhost:5173/',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
 ]
 
 #Preproduction

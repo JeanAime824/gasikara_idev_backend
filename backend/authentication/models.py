@@ -1,6 +1,7 @@
 from django.db import models
+import uuid
 
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.models import AbstractUser, BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.utils.translation import gettext_lazy as _
 
 from django.utils import timezone
@@ -12,12 +13,12 @@ class UserManager(BaseUserManager):
             raise ValueError(_('The username field must be set'))
         if not email:
             raise ValueError(_('The email address field must be set'))
-        
+
         email = self.normalize_email(email)
         user = self.model(username=username, email=email, role=role, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
-        
+
         return user
 
     def create_superuser(self, username, email, password=None, **extra_fields):
@@ -30,19 +31,19 @@ class UserManager(BaseUserManager):
             raise ValueError(_('Superuser must have is_superuser=True.'))
 
         return self.create_user(username, email, password, **extra_fields)
-    
 
-class User (AbstractBaseUser, PermissionsMixin):
+
+class CustomUser (AbstractBaseUser, PermissionsMixin):
     ROLE = (
         ('ADMIN', 'Administrateur'),
         ('MANAGER','Responsable'),
     )
     uid=models.UUIDField(
-        primary_key=True,
         default=uuid.uuid4,
-        editable=False
+        editable=False,
+        unique=True
     )
-    
+
     role=models.CharField(
         max_length=20,
         choices=ROLE, null=True, blank=True,
@@ -72,27 +73,24 @@ class User (AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
-    
+
     @property
     def is_admin(self):
         return self.role == 'ADMIN'
-    
+
     @property
-<<<<<<< Updated upstream
+
     def is_manager(self):
         return self.role == 'MANAGER'
-    
-=======
-    def is_responsable(self):
-        return self.user_type == 'responsable'
-    
 
-class Filiere(models.Model):
+
+
+class Classe(models.Model):
     nom = models.CharField(max_length = 120)
 
     def __str__(self):
         return self.nom
-    
+
 class Etudiant(models.Model):
     SEXE = [
         ('homme', 'Homme'),
@@ -102,7 +100,23 @@ class Etudiant(models.Model):
     prenom = models.CharField(max_length = 255)
     sexe = models.CharField(max_length = 20, choices = SEXE)
     date_inscription = models.DateField(auto_now_add = True)
-    filiere = models.ForeignKey(Filiere, on_delete = models.SET_NULL, null = True)
+    classe = models.ForeignKey(Classe, on_delete = models.SET_NULL, null = True)
+    adresse = models.CharField(max_length = 255)
+    telephone = models.CharField(max_length = 20)
+
+    def __str__(self):
+        return self.nom
+
+class Professeur(models.Model):
+    SEXE = [
+        ('homme', 'Homme'),
+        ('femme', 'Femme'),
+    ]
+    nom = models.CharField(max_length = 255)
+    prenom = models.CharField(max_length = 255)
+    sexe = models.CharField(max_length = 20, choices = SEXE)
+    date_inscription = models.DateField(auto_now_add = True)
+    specialite = models.CharField(max_length = 255)
     adresse = models.CharField(max_length = 255)
     telephone = models.CharField(max_length = 20)
 
@@ -111,11 +125,11 @@ class Etudiant(models.Model):
 
 class Cours(models.Model):
     titre = models.CharField(max_length = 120)
-    filiere = models.ForeignKey(Filiere, on_delete = models.SET_NULL, null = True)
-    
+    classe = models.ForeignKey(Classe, on_delete = models.SET_NULL, null = True)
+
     def __str__(self):
         return self.titre
-    
+
 class Notification(models.Model):
     TITRE_CHOICES = [
         ('DEMANDE_INSCRIPTION', 'Demande d\'inscription en attente'),
@@ -129,4 +143,3 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.titre} - {self.date_creation.strftime('%Y-%m-%d')}"
->>>>>>> Stashed changes
